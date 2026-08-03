@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+import pickle
 
 import numpy as np
 from scipy import special
@@ -24,6 +25,22 @@ HandFrequency = collections.namedtuple(
 # Tuple of cards being held (Hand) and the expected payout after drawing back
 # up to five cards (float)
 HeldValue = collections.namedtuple('HeldValue', ('held', 'value'))
+
+
+def canonical_hands_dict() -> dict:
+    """Returns dict of canonical hands to number of hands that map to it.
+
+    The resulting dict will contain 134,459 canonical hands, each mapping
+    to a number of hands that map to it ranging between 4 and 24. The total
+    number of values will sum to (52 choose 5) = 2,598,960.
+
+    A cached value from this routine is saved at data/canonical_hands_dict.pkl.
+    """
+    canonical_dict = collections.defaultdict(int)
+    it = hand.all_hands_iter()
+    for h in it:
+        canonical_dict[h.canonical_suit()] += 1
+    return canonical_dict
 
 
 def semi_deviation(values: npt.ArrayLike,

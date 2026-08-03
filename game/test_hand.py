@@ -414,3 +414,8 @@ def test_num_duplicates_reverse_order():
     held = hand.Hand(cards)
     assert held.num_duplicates() == [3, 2]
 
+
+def test_canonical_suit():
+    held = hand.Hand('QS 2S 5H 4H KC')
+    expected = hand.Hand('QC 2C 5D 4D KH')
+    assert held.canonical_suit() == expected

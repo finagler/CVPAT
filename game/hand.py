@@ -7,13 +7,31 @@ hand given the cards already being held.
 """
 from __future__ import annotations
 
+import functools
 import itertools
 
 from game import card
 from game import payout_table
 
 import numpy as np
+from numpy import typing as npt
 import typing
+
+
+def all_hands_iter() -> typing.Iterator[Hand]:
+    """Returns iterator of all possible 5-card hands."""
+    card_iter = itertools.product(range(1, 14), card.SuitEnum)
+    cards = [card.Card(r, s) for r, s in card_iter]
+    return map(Hand, itertools.combinations(cards, 5))
+
+
+def random_hand(rng: np.random.Generator | None = None) -> Hand:
+    """Returns random 5-card hand."""
+    if not rng:
+        rng = np.random.default_rng
+    ranks = rng.integers(low=1, high=14, size=5)
+    suits = [card.SuitEnum(s) for s in rng.integers(low=0, high=4, size=5)]
+    return Hand([card.Card(r, s) for r, s in zip(ranks, suits)])
 
 
 class Hand(object):
@@ -178,7 +196,7 @@ class Hand(object):
                 not self._has_at_least_xkind(3) and
                 not self._has_flush())
 
-    def eval_hand(self) -> np.ndarray:
+    def eval_hand(self) -> npt.NDArray[np.bool]:
         value = np.array([self.is_royal_flush(),
                           self.is_straight_flush(),
                           self.is_5kind(),
@@ -190,7 +208,7 @@ class Hand(object):
                           self.is_2pair(),
                           self.is_jack_high_pair(),
                           self.is_low_pair(),
-                          False])
+                          False]).astype(np.bool)
         if not np.any(value):
             value[-1] = True
         assert value.sum() == 1
@@ -287,3 +305,38 @@ class Hand(object):
                 not self._has_at_least_xkind(3) and
                 not self._has_flush() and
                 not self._has_straight())
+
+    def canonical_suit(self) -> Hand:
+        """Returns hand with normalized suit.
+
+        Returns hand with the same ranks and suit separation as self, but
+        with suits potentially reordered. All hands that differ only by suit
+        names assigned to each set of ranks (like [A♠, 3♠, 4♠, 9♡, K♡] and
+        [A♣, 3♣, 4♣, 9♢, K♢]) will map to a single canonical hand to represent
+        the set.
+        """
+        # Get card ranks by suit, sorted to longest/lowest first.
+        ranks_by_suit = [[], [], [], []]
+        for c in self.cards:
+            ranks_by_suit[c.suit_index].append(c.rank)
+
+        def _row_compare(x, y) -> int:
+            """Compare sequences of numbers."""
+            if len(x) != len(y):
+                if len(x) > len(y):
+                    return -1
+                return 1
+            diff = np.array(x) - np.array(y)
+            try:
+                return diff[diff != 0][0]
+            except IndexError:
+                return 0
+
+        ranks_by_suit.sort(key=functools.cmp_to_key(_row_compare))
+
+        # Return hand in new suit order.
+        cards = []
+        for suit_index, r_arr in enumerate(ranks_by_suit):
+            for r in r_arr:
+                cards.append(card.Card(r, card.SuitEnum(suit_index)))
+        return Hand(cards)
