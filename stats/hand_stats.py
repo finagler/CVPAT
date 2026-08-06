@@ -413,7 +413,6 @@ class HandStats(object):
         """
         prob = self.prob_winning_hand(held)
         values = self.payout.table
-        # reward = (self.prob_winning_hand(held) * self.payout.table).sum()
         reward = (prob * values).sum()
         adj = 0
         if risk != 0:
