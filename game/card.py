@@ -31,8 +31,15 @@ SUIT_SYMBOLS = {SuitEnum.CLUB: '\N{BLACK CLUB SUIT}',
 
 
 def card_list(cards_str: str) -> typing.List[Card]:
-    """Returns list of cards from space-separated string, e.g. '2C 3C'"""
-    return [Card.from_str(c) for c in cards_str.split()]
+    """Returns list of cards from string.
+
+    Args:
+        cards_str: string either as '[A♣A♢9♡K♠10♣]' or 'AC AD 9H KS 10C'
+    """
+    # Convert string like '[A♣A♢A♡A♠10♣]' to 'AC AD AH AS 10C'
+    trimmed = cards_str.strip('[]').replace('♣', 'C ').replace(
+        '♢', 'D ').replace('♡', 'H ').replace('♠', 'S ')
+    return [Card.from_str(c) for c in trimmed.split()]
 
 
 @functools.total_ordering
